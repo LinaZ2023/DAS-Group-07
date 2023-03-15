@@ -1,30 +1,170 @@
 ---
 title: "Group_07_Analysis"
-author: "Lina Zhou"
-date: "2023-03-08"
-output: html_document
+author: "Boyang Sun,Lina Zhou,Yitong Liu,Yifan Kong,Zhengliang Zhang"
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE, eval = TRUE, warning = FALSE, message = FALSE, comment = NA)
 ```
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+```{r libraries}
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+library(GGally)
+library(readr)
+library(kableExtra)
+library(gridExtra)
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
 ```
 
-## Including Plots
+# Introduction {#sec:intro}
 
-You can also embed plots, for example:
+The IMDB rating is a contextual concern for filmmakers because it reflects the quality and popularity of a movie. the IMDB rating can be used as an indicator for filmmakers to review the content of a movie. It can help them determine whether the movie is likely to be a huge success and whether the movie is likely to be well received by audiences. In addition, IMDB ratings can help filmmakers evaluate the economics of a film to determine if it is worth investing in.Based on this background, this report explores this main issue below to serve filmmakers.
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+Question:
+**Which properties of films influence whether they are rated by IMDB as greater than 7 or not? ** 
+
+By studying the factors that influence IMDB, it can help filmmakers make more accurate judgments.
+
+```{r data, echo = FALSE, eval = TRUE, warning = FALSE, message = FALSE}
+
+#Data pre-processing
+
+#Set the current working directory
+setwd("/Users/zhoulina/Desktop/DAS GROUP2/Datasets-20230308")
+
+#Read data
+film<-read_csv("dataset7.csv")
+
+#Data cleansing
+
+#Add categorical variables IMDB_GoodType and IMDB_GoodType_flag
+film<-film%>%
+  mutate( 'IMDB_GoodType'= ifelse(rating> 7,'greater than 7', 'less than 7'))%>%
+  mutate( 'IMDB_GoodType_flag'= ifelse(rating> 7,1,0))
+
+
+#Remove invalid data rows with null values
+film<- na.omit(film)
+
+
+#Select the fields available for analysis based on business implications,Exclude vote and film.id
+
+film_data<-film%>%
+      select('year','length','budget','genre','rating','IMDB_GoodType','IMDB_GoodType_flag')
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+# Exploratory data analysis {#sec:eda}
+
+## Variable Description
+
+
+***year*** Year of release of the film in cinemas
+
+***length***  Duration (in minutes)
+
+***budget*** Budget for the films production (in $1000000s)
+
+***genre*** Genre of the film
+
+***rating*** IMDB rating from 0-10
+
+***IMDB_GoodType*** IMDB rating greater than 7 description
+
+***IMDB_GoodType_flag*** IMDB rating greater than 7 then 1 else 0
+
+
+These are the explanatory notes for each field of the dataset.
+
+
+## Data Summary
+
+The following table shows all the variables to be explored for this dataset.
+
+\newpage
+```{r, echo = FALSE, eval = TRUE, warning = FALSE, message = FALSE}
+#Data table display after data cleaning
+kable(head(film_data, n = 10), caption = '\\label{tab:film_data} The first 10 rows of the film data.')%>%
+  kable_styling(font_size = 9, latex_options = 'h')
+```
+
+Table 1 contains 7 columns of data, and the question of our research revolve around  ***IMDB_GoodType_flag*** as the response variable,numerical explanatory variables: ***year***,***length***,***budget***, and a categorical explanatory variable ***genre*** to develop the corresponding exploration.
+
+
+```{r, echo = FALSE, eval = TRUE, warning = FALSE, message = FALSE}
+#Produce a data summary of the response variable IMDB_GoodType_flag
+film_data%>%
+  group_by(IMDB_GoodType)%>%
+  summarise(n=n())%>%
+  kable(caption = '\\label{tab:film_data} table of the type of IMDB')%>%
+  kable_styling(latex_options = "hold_position")
+```
+
+
+
+Table 2 contains summary statistics on the type of IMDB. There are `r nrow(film_data)` observations. We can see that IMDB ***greater than 7*** has `r nrow(film_data[film_data$IMDB_GoodType == 'greater than 7', ])` observations and
+ IMDB ***less than 7*** has `r nrow(film_data[film_data$IMDB_GoodType == 'less than 7', ])` observations.
+ 
+ 
+## Data visualization display
+
+```{r, eval = TRUE, out.width = '50%', fig.align = "center",warning = FALSE, fig.cap = '\\label{fig:film_data} The length by the type of IMDB'}
+#Plotting length under different IMDB_GoodType 
+ggplot(data = film_data, aes(x =IMDB_GoodType, y = length,fill = IMDB_GoodType)) +
+  geom_boxplot() +
+  labs(x = "IMDB_GoodType", y = "length")+ 
+  theme(legend.position = "none")
+
+```
+
+
+The boxplot in Figure 1 shows that the distribution of variable length in each IMDB_GoodType.We can find that the length of most films with rate greater than 7 is shorter than the films with rate less than 7, and the variance of the length of the films with rate less than 7 is small which means its distribution is quite centralized around its median with small variability.
+
+\newpage
+```{r, eval = TRUE, out.width = '50%', fig.align = "center",warning = FALSE, fig.cap = '\\label{fig:film_data} budget and year by the type of IMDB'}
+#Plotting length under different IMDB_GoodType 
+p1<-ggplot(data = film_data, aes(x =IMDB_GoodType, y = budget,fill = IMDB_GoodType)) +
+  geom_boxplot() +
+  labs(x = "IMDB_GoodType", y = "budget")+ 
+  theme(legend.position = "none")
+
+#Plotting length under different IMDB_GoodType 
+p2<-ggplot(data = film_data, aes(x =IMDB_GoodType, y = year,fill = IMDB_GoodType)) +
+  geom_boxplot() +
+  labs(x = "IMDB_GoodType", y = "year")+ 
+  theme(legend.position = "none")
+grid.arrange(p1,p2,nrow=1,widths=c(4,4))
+```
+
+
+The boxplots in above show that the distribution of variables' budget and year in each IMDB_GoodType.It is not difficult to find that these two variables' distributions in each IMDB_GoodType are all symmetric
+
+
+## Correlation matrix
+
+Before we take these continuous variables into consideration, check the correlation coefficient between variables first, and the figure of the correlation matrix present in the following:
+
+```{r, eval = TRUE, out.width = '70%', fig.align = "center",warning = FALSE, fig.cap = '\\label{fig:film_data} The correlation coefficient between variables.'}
+#Obtain the correlation coefficient between variables
+ggpairs(film_data[c("year","length","budget")])
+```
+
+From the correlation matrix we got above, we can find that the correlations between the variables are all quite low which confirms us to use all of them in the model of further analysis.
+
+Besides, we are also interested in the influence of the categorical variable genre in the prediction of the response variable IMBD_GoodType_flag. Thus, check the proportion of different genres under each IMDB_GoodType, which shows below:
+
+```{r, eval = TRUE, out.width = '90%', fig.align = "center",warning = FALSE, fig.cap = '\\label{fig:film_data} The proportion of different genres under each type of IMBD'}
+ggplot(film_data, aes(x= IMDB_GoodType,  y = ..prop.., group=genre, fill=genre)) + 
+    geom_bar(position="dodge", stat="count") +
+    labs(y = "Proportion")
+```
+
+It is obvious that considering the categorical variable genre in the prediction of IMDB_GoodType will make sense.
+
+# Formal analysis
