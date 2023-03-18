@@ -1,0 +1,310 @@
+---
+title: "Group_07_Analysis"
+author: "Boyang Sun,Lina Zhou,Yitong Liu,Yifan Kong,Zhengliang Zhang"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, eval = TRUE, warning = FALSE, message = FALSE, comment = NA,tidy.opts=list(width.cutoff=55),tidy=TRUE)
+```
+
+
+```{r libraries}
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+library(GGally)
+library(readr)
+library(kableExtra)
+library(gridExtra)
+library(formatR)
+```
+
+# Introduction {#sec:intro}
+
+The IMDB rating is a contextual concern for filmmakers because it reflects the quality and popularity of a movie. the IMDB rating can be used as an indicator for filmmakers to review the content of a movie. It can help them determine whether the movie is likely to be a huge success and whether the movie is likely to be well received by audiences. In addition, IMDB ratings can help filmmakers evaluate the economics of a film to determine if it is worth investing in.Based on this background, this report explores this main issue below to serve filmmakers.
+
+Question:
+**Which properties of films influence whether they are rated by IMDB as greater than 7 or not? ** 
+
+By studying the factors that influence IMDB, it can help filmmakers make more accurate judgments.
+
+```{r data, echo = FALSE, eval = TRUE, warning = FALSE, message = FALSE}
+
+#Data pre-processing
+
+#Set the current working directory
+setwd("/Users/liuyitong/Desktop/Data analyses skillls/Group Project/DAS-Group-07")
+
+#Read data
+film<-read_csv("dataset7.csv")
+
+#Data cleansing
+
+#Add categorical variables IMDB_GoodType and IMDB_GoodType_flag
+film<-film%>%
+  mutate( 'IMDB_GoodType'= ifelse(rating> 7,'greater than 7', 'less than 7'))%>%
+  mutate( 'IMDB_GoodType_flag'= ifelse(rating> 7,1,0))
+
+
+#Remove invalid data rows with null values
+film<- na.omit(film)
+
+
+#Select the fields available for analysis based on business implications,Exclude vote and film.id
+
+film_data<-film%>%
+      select('year','length','budget','genre','rating','IMDB_GoodType','IMDB_GoodType_flag')
+```
+
+# Exploratory data analysis {#sec:eda}
+
+## Variable Description
+
+
+***year*** Year of release of the film in cinemas
+
+***length***  Duration (in minutes)
+
+***budget*** Budget for the films production (in $1000000s)
+
+***genre*** Genre of the film
+
+***rating*** IMDB rating from 0-10
+
+***IMDB_GoodType*** IMDB rating greater than 7 description
+
+***IMDB_GoodType_flag*** IMDB rating greater than 7 then 1 else 0
+
+
+These are the explanatory notes for each field of the dataset.
+
+
+## Data Summary
+
+The following table shows all the variables to be explored for this dataset.
+
+\newpage
+```{r, echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE}
+#Data table display after data cleaning
+kable(head(film_data, n = 10), caption = '\\label{tab:film_data} The first 10 rows of the film data.')%>%
+  kable_styling(font_size = 9, latex_options = 'h')
+```
+
+Table 1 contains 7 columns of data, and the question of our research revolve around  ***IMDB_GoodType_flag*** as the response variable,numerical explanatory variables: ***year***,***length***,***budget***, and a categorical explanatory variable ***genre*** to develop the corresponding exploration.
+
+
+```{r, echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE}
+#Produce a data summary of the response variable IMDB_GoodType_flag
+film_data%>%
+  group_by(IMDB_GoodType)%>%
+  summarise(n=n())%>%
+  kable(caption = '\\label{tab:film_data} table of the type of IMDB')%>%
+  kable_styling(latex_options = "hold_position")
+```
+
+
+
+Table 2 contains summary statistics on the type of IMDB. There are `r nrow(film_data)` observations. We can see that IMDB ***greater than 7*** has `r nrow(film_data[film_data$IMDB_GoodType == 'greater than 7', ])` observations and
+ IMDB ***less than 7*** has `r nrow(film_data[film_data$IMDB_GoodType == 'less than 7', ])` observations.
+ 
+ 
+## Data visualization display
+
+```{r, eval = TRUE, out.width = '50%', fig.align = "center",warning = FALSE, fig.cap = '\\label{fig:film_data} The length by the type of IMDB'}
+#Plotting length under different IMDB_GoodType 
+ggplot(data = film_data, aes(x =IMDB_GoodType, y = length,fill = IMDB_GoodType)) +
+  geom_boxplot() +
+  labs(x = "IMDB_GoodType", y = "length")+ 
+  theme(legend.position = "none")
+
+```
+
+
+The boxplot in Figure 1 shows that the distribution of variable length in each IMDB_GoodType.We can find that the length of most films with rate greater than 7 is shorter than the films with rate less than 7, and the variance of the length of the films with rate less than 7 is small which means its distribution is quite centralized around its median with small variability.
+
+\newpage
+```{r, eval = TRUE, out.width = '50%', fig.align = "center",warning = FALSE, fig.cap = '\\label{fig:film_data} budget and year by the type of IMDB'}
+#Plotting length under different IMDB_GoodType 
+p1<-ggplot(data = film_data, aes(x =IMDB_GoodType, y = budget,fill = IMDB_GoodType)) +
+  geom_boxplot() +
+  labs(x = "IMDB_GoodType", y = "budget")+ 
+  theme(legend.position = "none")
+
+#Plotting length under different IMDB_GoodType 
+p2<-ggplot(data = film_data, aes(x =IMDB_GoodType, y = year,fill = IMDB_GoodType)) +
+  geom_boxplot() +
+  labs(x = "IMDB_GoodType", y = "year")+ 
+  theme(legend.position = "none")
+grid.arrange(p1,p2,nrow=1,widths=c(4,4))
+```
+
+
+The boxplots  bove show that the distribution of variables' budget and year in each IMDB_GoodType.It is not difficult to find that these two variables' distributions in each IMDB_GoodType are all symmetric
+
+
+## Correlation matrix
+
+Before we take these continuous variables into consideration, check the correlation coefficient between variables first, and the figure of the correlation matrix present in the following:
+
+```{r, eval = TRUE, out.width = '70%', fig.align = "center",warning = FALSE, fig.cap = '\\label{fig:film_data} The correlation coefficient between variables.'}
+#Obtain the correlation coefficient between variables
+ggpairs(film_data[c("year","length","budget")])
+```
+
+From the correlation matrix we got above, we can find that the correlations between the variables are all quite low which confirms us to use all of them in the model of further analysis.
+
+Besides, we are also interested in the influence of the categorical variable genre in the prediction of the response variable IMBD_GoodType_flag. Thus, check the proportion of different genres under each IMDB_GoodType, which shows below:
+
+```{r, eval = TRUE, out.width = '90%', fig.align = "center",warning = FALSE, fig.cap = '\\label{fig:film_data} The proportion of different genres under each type of IMBD'}
+ggplot(film_data, aes(x= IMDB_GoodType,  y = ..prop.., group=genre, fill=genre)) + 
+    geom_bar(position="dodge", stat="count") +
+    labs(y = "Proportion")
+```
+
+It is obvious that considering the categorical variable genre in the prediction of IMDB_GoodType will make sense.
+
+# Formal data analysis
+
+```{r fda, echo=FALSE, eval=TRUE, warning=FALSE, message=FALSE}
+#import following libraries for formal analysis
+library(moderndive)
+library(gapminder)
+library(sjPlot)
+library(stats)
+library(jtools)
+library(dplyr)
+library(MASS)
+```
+## Data format transfer
+Before formal analysis, some potential explanatory variables need to be convert to more reasonable types.
+
+First check data type. Potential explanatory variable *genre* is of character, so change it to categorical.
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+str(film_data)
+#splitting a categorical variable into multiple binary variables
+film_data <- cbind(film_data, model.matrix(~genre-1, data=film_data))
+str(film_data)
+```
+
+Since all variables are in suitable types, the response variable **IMDB_GoodType_flag** is binary, **genre** is a categorical variable with multiple binary variables, **year**, **length** and **budget** are numeric,we can fit **Generalized linear model** formally.
+
+### Model Fit
+
+```{r model1,echo=TRUE,eval=TRUE,warning=FALSE,message=FALSE}
+# Logistic regression model 
+model1 <- glm(IMDB_GoodType_flag ~ year + length + budget + genre, data = film_data, family = binomial(link = "logit"))
+
+# summary of the logistic regression model
+summ(model1)
+```
+
+It can be observed that estimated coefficient of *year*, *budget*, *genreComedy*, *genreDocumentary*, *genreShort* are positive. So the higher vlues they take, the possibility of rating bigger than 7 is bigger. In contrast, estimated coefficient of *length*, *genreAnimation*, *genreDrama*, *genreRomance* are negative, which means the higher value these variables are, the likelihood of rating bigger than 7 smaller.
+
+## Odds-Ratio plot
+95% Confidence Interval of model1 are listed in the format of table and odds-ratio plot below.
+```{r , echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+# Generate confidence intervals for the logistic regression model coefficients and display in a table
+confint(model1) %>% kable(align = "c", digits = 2, booktabs = TRUE)
+
+# Generate a plot to visualize the effect of predictors on the rating of movies
+plot_model(model1, show.values = TRUE, transform = NULL, title = "The influence of predictors on the rating of movies", show.p = FALSE) +
+theme_bw() + theme(plot.title = element_text(hjust = 0.5)) + labs(x = "variables", y = "Odds ratio")
+```
+###  Results analysis(model1)
+
+From above Log-Odds plot, conclusions can be drawn as:
+* Among the predictor variables, *length* and *budget* showed statistically significant effects on the likelihood of a movie being rated as a "good" type, with negative and positive coefficients, respectively. 
+
+* The coefficient for the *year* of release was positive but not statistically significant.
+
+* Of the genre variables, comedy, documentary, drama, and short films had significant positive effects, while animation and romance had no significant effects.
+
+## model Model improvements
+Based on the above analysis, we select the following variables for GLM regression again.
+
+```{r, echo=TRUE,eval=TRUE,warning=FALSE,message=FALSE}
+# Fitting a logistic regression model with multiple predictors
+model2 <- glm(IMDB_GoodType_flag ~ length + budget + genreComedy + genreDocumentary + genreDrama + genreShort, 
+               data = film_data, family = binomial)
+
+# Summarizing the results of the logistic regression model
+summ(model2)
+
+```
+
+Similarly, 95% Confidence Interval of model2 are listed in the format of table and odds-ratio plot below.
+
+```{r , echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+# Computing the confidence intervals for the logistic regression coefficients
+confint(model2) %>%
+  kable(align = "c", digits = 2, booktabs = TRUE)
+
+# Plotting the coefficients and their confidence intervals
+plot_model(model2, show.values = TRUE, transform = NULL,
+           title = "The influence of predictors on the rating of movies", show.p = FALSE,) + 
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(x = "Variables", y = "Odds ratio")
+```
+This analysis shows that：
+* The budget and movie genre have the most significant impact on movie ratings, as indicated by their large and positive coefficients (0.49 for budget, 2.78 for genreComedy, 4.83 for genreDocumentary, and 4.33 for genreShort). 
+ 
+* In contrast, movie length have smaller coefficients (-0.05 for length), indicating that it have a less significant impact on ratings.
+ 
+* The coefficient for genreDrama is negative and significant (-1.99, p < 0.01), indicating that drama movies tend to have lower ratings compared to other genres.
+
+Now that all variables under consideration have significant p-value.But there might be nonlinear or curved patterns in the relationship between variables, we can check it through scatter plots. If such patterns are observed, considering introducing interaction terms may be necessary.
+
+From the correlation plot of *year*, *budget* and *length*, considering add interactions of *year* and *length* to perform GLM analysis.
+
+```{r, echo=TRUE,eval=TRUE,warning=FALSE,message=FALSE}
+# Fitting a logistic regression model with interaction between length and year 
+model3 <- glm(IMDB_GoodType_flag ~ length + budget + genreComedy + genreDocumentary + genreDrama + genreShort + length * year, data = film_data, family = binomial)
+
+# Summarizing the model results
+summ(model3)
+```
+Again, 95% Confidence Interval of model2 are listed in the format of table and odds-ratio plot below.
+
+```{r , echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+confint(model3) %>%
+  kable(align = "c",digits = 2,booktabs = TRUE)
+plot_model(model3, show.values = TRUE, transform=NULL,
+           title = "The influence of predictors on the rating of movies", show.p = FALSE,)+theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(x = "variables", y = "Odds ratio") 
+```
+According to the results, conclusions are as below:
+* Among the 8 independent variables, only the coefficients for length, year, and the interaction term length:year and drama genre were not significant. All other variables had significant coefficients.
+ 
+* The budget variable had the largest coefficient of 0.50, while the coefficients for length were -0.45. The coefficients for and comedy genre, documentary genre and short genres were 2.8, 4.78 and 4.40, respectively. 
+ 
+* This suggests that budget and movie genre have the most significant impact on movie ratings, while the influence of movie length and year on movie ratings is relatively small.
+
+```{r, echo=TRUE,eval=TRUE,warning=FALSE,message=FALSE}
+#set a AIC table 
+table = matrix(c(model1$aic, model2$aic,model3$aic),
+               dimnames = list(c("model1","model2","model3"),
+               c("AIC")))
+print(table)
+```
+
+## Compare model fitting 
+It can be observed that the AIC value of 3 models are `r table[1,]`, `r table[2,]` and `r table[3,]`, which are quite close.
+Comparing the odds_ratio plot of 3 model, we find that the second model has more reasonable parameters and describes the maximum amount of information using as few variables as possible.
+
+## Summary and Conclusion
+```{r}
+mod2coefs <- round(coef(model2), 2)
+```
+
+The final model expression are as below:
+\[nn
+\ln\left(\frac{p}{1-p}\right) = \alpha + \beta_1 \cdot \textrm{length} + \beta_2 \cdot \textrm{budget} + \beta_3 \cdot \textrm{genreComedy} + \beta_4 \cdot \textrm{genreDocumentary} + \beta_5 \cdot \textrm{genreDrama} + \beta_6 \cdot \textrm{genreShort}  = \]
+\[
+`r mod2coefs[1]`  `r mod2coefs[2]` \cdot \textrm{length} + `r mod2coefs[3]` \cdot \textrm{budget} + `r mod2coefs[4]` \cdot \textrm{genreComedy} + `r mod2coefs[5]` \cdot \textrm{genreDocumentary}  `r mod2coefs[6]` \cdot \textrm{genreDrama} + `r mod2coefs[7]` \cdot \textrm{genreShort} 
+\]
+
