@@ -1,0 +1,354 @@
+---
+title: "Group_07_Analysis"
+author: "Boyang Sun,Lina Zhou,Yitong Liu,Yifan Kong,Zhengliang Zhang"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, eval = TRUE, warning = FALSE, message = FALSE, comment = NA,tidy.opts=list(width.cutoff=55),tidy=TRUE)
+```
+
+
+```{r libraries}
+#import following libraries
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+library(GGally)
+library(readr)
+library(kableExtra)
+library(gridExtra)
+library(formatR)
+library(moderndive)
+library(gapminder)
+library(sjPlot)
+library(stats)
+library(jtools)
+```
+
+# Introduction {#sec:intro}
+
+The IMDB rating is a contextual concern for filmmakers because it reflects the quality and popularity of a movie. the IMDB rating can be used as an indicator for filmmakers to review the content of a movie. It can help them determine whether the movie is likely to be a huge success and whether the movie is likely to be well received by audiences. In addition, IMDB ratings can help filmmakers evaluate the economics of a film to determine if it is worth investing in.Based on this background, this report explores this main issue below to serve filmmakers.
+
+Question:
+**Which properties of films influence whether they are rated by IMDB as greater than 7 or not? ** 
+
+By studying the factors that influence IMDB, it can help filmmakers make more accurate judgments.
+
+```{r data, echo = FALSE, eval = TRUE, warning = FALSE, message = FALSE}
+
+#Data pre-processing
+
+#Set the current working directory
+#setwd("/Users/liuyitong/Desktop/Data analyses skillls/Group Project/DAS-Group-07")
+
+#Read data
+film<-read_csv("dataset7.csv")
+
+#Data cleansing
+
+#Add categorical variables goodtype and goodtype_flag
+film<-film%>%
+  mutate( 'goodtype'= ifelse(rating> 7,'greater than 7', 'less than 7'))%>%
+  mutate( 'goodtype_flag'= ifelse(rating> 7,1,0))
+
+
+#Remove invalid data rows with null values
+film<- na.omit(film)
+
+
+#Select the fields available for analysis based on business implications,Exclude vote and film.id
+
+film_data<-film%>%
+      select('year','length','budget','genre','rating','goodtype','goodtype_flag')
+```
+
+# Exploratory data analysis {#sec:eda}
+
+## Variable Description
+
+
+***year*** Year of release of the film in cinemas
+
+***length***  Duration (in minutes)
+
+***budget*** Budget for the films production (in $1000000s)
+
+***genre*** Genre of the film
+
+***rating*** IMDB rating from 0-10
+
+***goodtype*** IMDB rating greater than 7 description
+
+***goodtype_flag*** IMDB rating greater than 7 then 1 else 0
+
+
+These are the explanatory notes for each field of the dataset.
+
+
+## Data Summary
+
+The following table shows all the variables to be explored for this dataset.
+
+\newpage
+```{r, echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE}
+#Data table display after data cleaning
+
+kable(head(film_data, n = 10), 
+      caption = '\\label{tab:film_data} The first 10 
+      rows of the film data.')%>%
+  kable_styling(font_size = 7, latex_options = 'h')
+```
+
+Table 1 contains 7 columns of data, and the question of our research revolve around  ***goodtype_flag*** as the response variable,numerical explanatory variables: ***year***,***length***,***budget***, and a categorical explanatory variable ***genre*** to develop the corresponding exploration.
+
+
+```{r, echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE}
+#Produce a data summary of the response variable goodtype_flag
+
+film_data%>%
+  group_by(goodtype)%>%
+  summarise(n=n())%>%
+  kable(caption = '\\label{tab:film_data} table of the type of IMDB')%>%
+  kable_styling(latex_options = "hold_position")
+```
+
+
+
+Table 2 contains summary statistics on the type of IMDB. There are `r nrow(film_data)` observations. We can see that IMDB ***greater than 7*** has `r nrow(film_data[film_data$goodtype == 'greater than 7', ])` observations and
+ IMDB ***less than 7*** has `r nrow(film_data[film_data$goodtype == 'less than 7', ])` observations.
+ 
+ 
+## Data visualization display
+
+```{r, eval = TRUE, out.width = '50%', fig.align = "center",warning = FALSE, fig.cap = '\\label{fig:film_data} The length by the type of IMDB'}
+#Plotting length under different goodtype
+
+ggplot(data = film_data, aes(x =goodtype, y = length,fill = goodtype)) +
+  geom_boxplot() +
+  labs(x = "goodtype", y = "length")+ 
+  theme(legend.position = "none")
+
+```
+
+
+The boxplot in Figure 1 shows that the distribution of variable length in each goodtype.We can find that the length of most films with rate greater than 7 is shorter than the films with rate less than 7, and the distribution of the length of the films with rate less than 7 centralized around its median with small variability.
+
+\newpage
+```{r, eval = TRUE, out.width = '50%', fig.align = "center",warning = FALSE, fig.cap = '\\label{fig:film_data} budget and year by the type of IMDB'}
+#Plotting length under different goodtype 
+
+p1<-ggplot(data = film_data, aes(x =goodtype, y = budget,fill = goodtype)) +
+  geom_boxplot() +
+  labs(x = "goodtype", y = "budget")+ 
+  theme(legend.position = "none")
+
+#Plotting length under different goodtype 
+
+p2<-ggplot(data = film_data, aes(x =goodtype, y = year,fill = goodtype)) +
+  geom_boxplot() +
+  labs(x = "goodtype", y = "year")+ 
+  theme(legend.position = "none")
+grid.arrange(p1,p2,nrow=1,widths=c(4,4))
+```
+
+
+The boxplots bove show that the difference between the distribution of the variables *budget* and *year* in each goodtype is samll.
+
+
+## Correlation matrix
+
+Besides of the boxplot, the correlation coefficient between variables also need to be checked.
+
+```{r, eval = TRUE, out.width = '50%', fig.align = "center",warning = FALSE, fig.cap = '\\label{fig:film_data} The correlation coefficient between variables.'}
+#Check the correlation coefficient between variables
+
+ggpairs(film_data[c("year","length","budget")])
+```
+\newpage
+
+The correlations between the variables are all less than 0.16 which is quite low. It seems there does not have the question of collinearity.
+
+Moreover, the categorical variable genre may also have an influence in the prediction of the response variable goodtype_flag. Thus, check the proportion of different genres under each goodtype, which shows below:
+
+```{r, eval = TRUE, out.width = '60%', fig.align = "center",warning = FALSE, fig.cap = '\\label{fig:film_data} The proportion of different genres under each type of IMBD'}
+ggplot(film_data, aes(x= goodtype,  y = ..prop.., group=genre, fill=genre)) + 
+    geom_bar(position="dodge", stat="count") +
+    labs(y = "Proportion")
+```
+
+It is obvious that considering the categorical variable genre in the prediction of goodtype will make sense.
+\newpage
+
+# Formal data analysis
+
+
+
+Before formal analysis, check the type of the variables and confirm everything is ready for the model fitting. 
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+str(film_data)
+```
+
+## Model Fit
+
+```{r model1,echo=TRUE,eval=TRUE,warning=FALSE,message=FALSE}
+# the first GLM named model1
+
+model1 <- glm(goodtype_flag ~ year + length + budget + genre, data = film_data, family = binomial(link = "logit"))
+
+# summary of model1
+
+summ(model1)
+```
+\newpage
+It can be observed that the p-value of the variable *year* is larger than 0.05, which indicates that *year* does not have a significant relationship with the response variable. Thus, we remove it and fit the new model again.
+
+## New Model Fit 
+
+```{r model2, echo=TRUE,eval=TRUE,warning=FALSE,message=FALSE}
+# the new GLM named model2
+#splitting a categorical variable into multiple binary variables
+film_data <- cbind(film_data, model.matrix(~genre-1, data=film_data))
+model2 <- glm(goodtype_flag ~ length + budget + genreComedy + genreDocumentary + genreDrama + genreShort, 
+               data = film_data, family = binomial)
+
+# summary of model2
+
+summ(model2)
+```
+\newpage
+As shown above, the p-values of all variables are less than 0.05. Therefore, we will use this model to conduct the prediction and analysis.
+From the result, we can get the values of all coefficients. For example, $\beta_1 =$ -0.05, which means the log-odds of the film rating greater than 7 decrease by 0.05 for one unit increase in *length*.
+
+## Log-Odds Ratio
+
+Besides of the point estimates of the coefficients shown above, we can also get the 95% Confidence Intervals for each variable of model2.
+
+```{r , echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+# Computing the confidence intervals for each variable of model2
+
+confint(model2) %>%
+  kable(align = "c", digits = 2, booktabs = TRUE)%>%
+  kable_styling(font_size = 10, latex_options = 'h')
+```
+The following shows the plot of the 95% Confidence Intervals:
+```{r , echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+# Plotting the confidence intervals of coefficients
+
+plot_model(model2, show.values = TRUE, transform = NULL,
+           title = "The influence of predictors on the rating of movies",
+           show.p = FALSE,) + 
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(x = "Variables", y = "Log-odds ratio")
+```
+
+We can also get the estimates of the log-odds of the fitted model:
+
+```{r,echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE}
+#compute the estimates of the log-odds
+
+film_data<-film_data%>%
+  mutate(logodds.goodtype = predict(model2))
+
+kable(head(film_data[,1:7], n = 10),
+      caption = '\\label{tab:filmdata} The first 10 rows of 
+      the film data with log-odds',align = "c") %>% 
+  kable_styling(font_size = 9, latex_options = 'h')
+```
+
+
+## Odds
+
+\begin{align}
+\frac{p}{1-p}\ &= exp(\alpha+ \beta_1 \cdot \textrm{Length}+\beta_2 \cdot \textrm{Budget}+\beta_3 \cdot I_{Comedy}+\beta_4 \cdot I_{Documentary} +\nonumber \\
+&\beta_5 \cdot I_{Drama}+\beta_6 \cdot I_{Short}\nonumber)
+\end{align}
+in which $p$ represents the probability of the film rating greater than 7
+
+Thus, we can get the estimates of the odds from the log-odds:
+
+```{r exp_log_odds, echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE}
+# Indexation of the probability estimates
+model2 %>%
+  coef() %>%
+  exp()
+```
+
+```{r,echo = TRUE, eval = TRUE,  out.width = '80%', fig.align = "center", warning = FALSE,  fig.pos="H",fig.cap = '\\label{fig:rate} The odds for different variables.'}
+
+#Plotting confidence intervals
+
+plot_model(model2, show.values = TRUE,
+           title = "Odds (Film rating greater than 7)", show.p = FALSE)
+
+```
+
+For *length*, we have an odds ratio of **0.95**, which suggests that for every 1 Unit increase in *length*, the odds ratio for a movie with a rating greater than 7 increases by a factor of 0.95. 
+
+
+```{r, echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE}
+#compute estimates of the odds from lof-odds
+
+film_data<-film_data%>%
+  mutate(odds.goodtype = exp(logodds.goodtype))
+film_data<-film_data[,-c(8:14)]
+kable(head(film_data, n = 10),
+      caption = '\\label{tab:filmdata} The first 10 rows of 
+      the film data with odds',
+      align = "c") %>%  
+   kable_styling(font_size = 7, latex_options = 'h')
+```
+
+## Probability
+
+Based on the estimates of the odds we got above, we can compute $p$
+
+```{r, echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE}
+#compute the value of p
+
+film_data<-film_data%>%
+  mutate(p=fitted(model2))
+kable(head(film_data, n = 10),
+      caption = '\\label{tab:filmdata} The first 10 rows of 
+      the film data with p',align = "c")%>%
+  kable_styling(font_size = 7, latex_options = 'h')
+```
+
+
+```{r, echo = TRUE,eval = TRUE,  out.width = '70%',fig.align = "center",warning = FALSE,fig.pos="H",fig.cap = '\\label{fig:rate} Comparing predictions and observations.'}
+#Graphical display of the model
+
+plot_model(model2,type = "pred",
+           title = "Prob. of the rating of the film greater than 7")
+```
+
+The regression model of movie length on the probability of a film rating greater than 7 clearly shows that:
+Overall,The probability of a movie rating greater than 7 decreases as the length of the movie increases
+
+* In the range of 0 to 60 minutes, the decrease is the greatest
+
+* In the range of 60 to 100, the decline slows down
+
+* Above 100 minutes, the basic probability is 0 and does not change
+
+
+The regression model of budget on the probability of a movie rating greater than 7 clearly shows that:
+Overall, the budget is positively correlated with the probability that the movie rating is greater than 7.
+
+* In the range from 0 to 5, the probability of a movie rating greater than 7 increases essentially no more as the budget increases
+
+* In the range from 5 to 10, the probability of a movie rating greater than 7 increases slightly
+
+* In the range of 10-20, the probability of a movie rating greater than 7 increases significantly with an increasing budget
+
+* In the range of 20 and above, the probability of a movie rating greater than 7 increases with budget, but the rate of increase slows
+
+
+The regression model of Comedy, Documentary, Drama, and Short genre shows that.
+
+* Films with genres "Comedy", "Documentary", "Short" always has a high probability of 'rating greater than 7', which means these kind of movies are more likely to rating greater than 7.
+
+* Films with genres "Drama" has low negative relationship with 'rating greater than 7', which means this kind of movies less more likely to rating greater than 7.
