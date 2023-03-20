@@ -388,4 +388,3 @@ The regression model of genre and the probability of a film rating greater than 
 ***Length, budget, and genre are three properties that affect whether a film is rated greater than 7 by IMDB***
 
 
-
