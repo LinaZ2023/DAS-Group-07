@@ -42,7 +42,7 @@ By studying the factors that influence IMDB, it can help filmmakers make more ac
 #Data pre-processing
 
 #Set the current working directory
-#setwd("/Users/liuyitong/Desktop/Data analyses skillls/Group Project/DAS-Group-07")
+setwd("/Users/zhoulina/DAS-Group-07")
 
 #Read data
 film<-read_csv("dataset7.csv")
@@ -137,7 +137,7 @@ ggplot(data = film_data, aes(x =goodtype, y = length,fill = goodtype)) +
 The boxplot in Figure 1 shows that the distribution of variable length in each goodtype.We can find that the length of most films with rate greater than 7 is shorter than the films with rate less than 7, and the distribution of the length of the films with rate less than 7 centralized around its median with small variability.
 
 \newpage
-```{r, eval = TRUE, out.width = '50%', fig.align = "center",warning = FALSE, fig.cap = '\\label{fig:film_data} budget and year by the type of IMDB'}
+```{r, eval = TRUE, out.width = '60%', fig.align = "center",warning = FALSE, fig.cap = '\\label{fig:film_data} budget and year by the type of IMDB'}
 #Plotting length under different goodtype 
 
 p1<-ggplot(data = film_data, aes(x =goodtype, y = budget,fill = goodtype)) +
@@ -155,14 +155,14 @@ grid.arrange(p1,p2,nrow=1,widths=c(4,4))
 ```
 
 
-The boxplots bove show that the difference between the distribution of the variables *budget* and *year* in each goodtype is samll.
+The boxplots in Figure 2 above show that the difference between the distribution of the variables ***budget*** and ***year*** in each goodtype is small.
 
 
 ## Correlation matrix
 
 Besides of the boxplot, the correlation coefficient between variables also need to be checked.
 
-```{r, eval = TRUE, out.width = '50%', fig.align = "center",warning = FALSE, fig.cap = '\\label{fig:film_data} The correlation coefficient between variables.'}
+```{r, eval = TRUE, out.width = '60%', fig.align = "center",warning = FALSE, fig.cap = '\\label{fig:film_data} The correlation coefficient between variables.'}
 #Check the correlation coefficient between variables
 
 ggpairs(film_data[c("year","length","budget")])
@@ -173,14 +173,15 @@ The correlations between the variables are all less than 0.16 which is quite low
 
 Moreover, the categorical variable genre may also have an influence in the prediction of the response variable goodtype_flag. Thus, check the proportion of different genres under each goodtype, which shows below:
 
-```{r, eval = TRUE, out.width = '60%', fig.align = "center",warning = FALSE, fig.cap = '\\label{fig:film_data} The proportion of different genres under each type of IMBD'}
+```{r, eval = TRUE, out.width = '70%', fig.align = "center",warning = FALSE, fig.cap = '\\label{fig:film_data} The proportion of different genres under each type of IMBD'}
 ggplot(film_data, aes(x= goodtype,  y = ..prop.., group=genre, fill=genre)) + 
     geom_bar(position="dodge", stat="count") +
     labs(y = "Proportion")
 ```
 
 It is obvious that considering the categorical variable genre in the prediction of goodtype will make sense.
-\newpage
+
+
 
 # Formal data analysis
 
@@ -232,6 +233,7 @@ confint(model2) %>%
   kable(align = "c", digits = 2, booktabs = TRUE)%>%
   kable_styling(font_size = 10, latex_options = 'h')
 ```
+
 The following shows the plot of the 95% Confidence Intervals:
 ```{r , echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
 # Plotting the confidence intervals of coefficients
@@ -269,6 +271,8 @@ kable(head(film_data, n = 10),
 
 
 ## Odds
+
+The formula is as follows:
 
 \begin{align}
 \frac{p}{1-p}\ &= exp(\alpha+ \beta_1 \cdot \textrm{Length}+\beta_2 \cdot \textrm{Budget}+\beta_3 \cdot I_{Animation}+\beta_4 \cdot I_{Comedy} +\nonumber \\
@@ -350,7 +354,7 @@ plot_model(model2,type = "pred",
 ```
 
 The regression model of movie length on the probability of a film rating greater than 7 clearly shows that:
-Overall,The probability of a movie rating greater than 7 decreases as the length of the movie increases
+Overall, the probability of a movie rating greater than 7 decreases as the length of the movie increases
 
 * In the range of 0 to 60 minutes, the decrease is the greatest
 
@@ -360,7 +364,8 @@ Overall,The probability of a movie rating greater than 7 decreases as the length
 
 
 The regression model of budget on the probability of a movie rating greater than 7 clearly shows that:
-Overall, the budget is positively correlated with the probability that the movie rating is greater than 7.
+
+Overall, the probability of a movie rating greater than 7 increases gradually as the movie budget increases, but above 20, the growth slows down.
 
 * In the range from 0 to 5, the probability of a movie rating greater than 7 increases essentially no more as the budget increases
 
@@ -370,11 +375,17 @@ Overall, the budget is positively correlated with the probability that the movie
 
 * In the range of 20 and above, the probability of a movie rating greater than 7 increases with budget, but the rate of increase slows
 
-
 The regression model of genre and the probability of a film rating greater than 7 clearly shows that.
 
-* Films with genres "Drama", "Action", "Animation" and "Romance" always have a low probability of rating greater than 7.
+* Films belonging to the "Drama", "Action", "Animation" and "Romance" genres always have a low probability of rating higher than 7.
 
-* Films with genres "Documentary", "Comedy" and "Short" always have a high probability of rating greater than 7.
+* Films belonging to the "Documentary", "Comedy" and "Short" genres always have a high probability of rating greater than 7.
 
-* The probability of films in the "short" genre fluctuates a lot.
+* Films in the "Short" genre have a highly swinging probability of rating greater than 7.
+
+## Conclusion
+
+***Length, budget, and genre are three properties that affect whether a film is rated greater than 7 by IMDB***
+
+
+
