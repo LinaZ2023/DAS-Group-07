@@ -209,9 +209,8 @@ It can be observed that the p-value of the variable *year* is larger than 0.05, 
 
 ```{r model2, echo=TRUE,eval=TRUE,warning=FALSE,message=FALSE}
 # the new GLM named model2
-#splitting a categorical variable into multiple binary variables
-film_data <- cbind(film_data, model.matrix(~genre-1, data=film_data))
-model2 <- glm(goodtype_flag ~ length + budget + genreComedy + genreDocumentary + genreDrama + genreShort, 
+
+model2 <- glm(goodtype_flag ~ length + budget + genre, 
                data = film_data, family = binomial)
 
 # summary of model2
@@ -245,6 +244,16 @@ plot_model(model2, show.values = TRUE, transform = NULL,
   labs(x = "Variables", y = "Log-odds ratio")
 ```
 
+We interpret the log-odds ratios as follows:
+
+* For every minute increase in the movies' *length*, their log-odds of getting rating greater than 7 decrease(by a factor of **0.97**).
+
+* For every million dollars' increase in *budget*, their log-odds of obtain rating than 7 increase(by a factor of **0.5**)
+
+* When the movie genres are *Comedy*, *Documentary*, and *Short*, the log-odds of their rating being above **7** are **2.75**, **4.8**, and **4.24** times higher than the movie genre *Action*.
+
+* When the movie genres are *Animation*, *Drama*, and *Romance*, the log-odds of their rating being below 7 is **0.15**, **2.04**, and **13.63** times higher than the movie genre *Action*.
+
 We can also get the estimates of the log-odds of the fitted model:
 
 ```{r,echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE}
@@ -252,8 +261,7 @@ We can also get the estimates of the log-odds of the fitted model:
 
 film_data<-film_data%>%
   mutate(logodds.goodtype = predict(model2))
-
-kable(head(film_data[,1:7], n = 10),
+kable(head(film_data, n = 10),
       caption = '\\label{tab:filmdata} The first 10 rows of 
       the film data with log-odds',align = "c") %>% 
   kable_styling(font_size = 9, latex_options = 'h')
@@ -263,8 +271,8 @@ kable(head(film_data[,1:7], n = 10),
 ## Odds
 
 \begin{align}
-\frac{p}{1-p}\ &= exp(\alpha+ \beta_1 \cdot \textrm{Length}+\beta_2 \cdot \textrm{Budget}+\beta_3 \cdot I_{Comedy}+\beta_4 \cdot I_{Documentary} +\nonumber \\
-&\beta_5 \cdot I_{Drama}+\beta_6 \cdot I_{Short}\nonumber)
+\frac{p}{1-p}\ &= exp(\alpha+ \beta_1 \cdot \textrm{Length}+\beta_2 \cdot \textrm{Budget}+\beta_3 \cdot I_{Animation}+\beta_4 \cdot I_{Comedy} +\nonumber \\
+&\beta_5 \cdot I_{Documentary}+\beta_6 \cdot I_{Drama}+\beta_7 \cdot I_{Romance}+\beta_8 \cdot I_{Short}\nonumber)
 \end{align}
 in which $p$ represents the probability of the film rating greater than 7
 
@@ -286,7 +294,24 @@ plot_model(model2, show.values = TRUE,
 
 ```
 
-For *length*, we have an odds ratio of **0.95**, which suggests that for every 1 Unit increase in *length*, the odds ratio for a movie with a rating greater than 7 increases by a factor of 0.95. 
+On the odds scale, we can conclude that:
+
+* For *length*, we have an odds ratio of **0.95**, which suggests that for every 1 Unit increase in *length*, the odds ratio for a movie with a rating greater than 7 increases by a factor of 0.95. 
+
+* For *budget*, we have an odds ratio of **1.64**, which indicates that for every 1 unit increase in *budget*,
+the odds ratio for a movie with a rating greater than 7 increase by a factor of 1.64.
+
+* For *genre*, the odds of movies with a rating greater than 7 given their genre of *Animation* are **0.86** times greater than their genre of *Action*.
+
+* For *genre*, the odds of movies with a rating greater than 7 given their genre of *Comedy* are **15.62** times greater than their genre of *Action*.
+
+* For *genre*, the odds of movies with a rating greater than 7 given their genre of *Documentary* are **122** times greater than their genre of *Action*.
+
+* For *genre*, the odds of movies with a rating greater than 7 given their genre of *Drama* are **0.13** times greater than their genre of *Action*.
+
+* For *genre*, the odds of movies with a rating greater than 7 given their genre of *Romance* are the same with their genre of *Action*.
+
+* For *genre*, the odds of movies with a rating greater than 7 given their genre of *Short* are **69.22** times greater than their genre of *Action*.
 
 
 ```{r, echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE}
@@ -294,12 +319,11 @@ For *length*, we have an odds ratio of **0.95**, which suggests that for every 1
 
 film_data<-film_data%>%
   mutate(odds.goodtype = exp(logodds.goodtype))
-film_data<-film_data[,-c(8:14)]
-kable(head(film_data, n = 10),
+kable(head(film_data, n = 10), 
       caption = '\\label{tab:filmdata} The first 10 rows of 
       the film data with odds',
       align = "c") %>%  
-   kable_styling(font_size = 7, latex_options = 'h')
+  kable_styling(font_size = 7, latex_options = 'h')
 ```
 
 ## Probability
@@ -347,8 +371,10 @@ Overall, the budget is positively correlated with the probability that the movie
 * In the range of 20 and above, the probability of a movie rating greater than 7 increases with budget, but the rate of increase slows
 
 
-The regression model of Comedy, Documentary, Drama, and Short genre shows that.
+The regression model of genre and the probability of a film rating greater than 7 clearly shows that.
 
-* Films with genres "Comedy", "Documentary", "Short" always has a high probability of 'rating greater than 7', which means these kind of movies are more likely to rating greater than 7.
+* Films with genres "Drama", "Action", "Animation" and "Romance" always have a low probability of rating greater than 7.
 
-* Films with genres "Drama" has low negative relationship with 'rating greater than 7', which means this kind of movies less more likely to rating greater than 7.
+* Films with genres "Documentary", "Comedy" and "Short" always have a high probability of rating greater than 7.
+
+* The probability of films in the "short" genre fluctuates a lot.
